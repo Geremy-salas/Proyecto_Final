@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- Main Section for Error Display -->
+<div class="container-fluid bg-light p-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8 col-sm-12">
+            <!-- Card for Error Display -->
+            <div class="card shadow-sm border-danger">
+                <div class="card-header bg-danger text-white text-center">
+                    <h2 class="card-title font-weight-bold">¡Error! 😢</h2>
+                </div>
+                <div class="card-body text-center">
+                    <!-- Error Message -->
+                    <p class="font-weight-bold text-xl text-muted mb-4">
+                        Algo no salió como esperábamos. ¡Intenta nuevamente más tarde!
+                    </p>
+                    <p class="display-1 text-primary mb-4 animate__animated animate__bounce">
+                        {{ error }}
+                    </p>
+                </div>
+                <div class="card-footer text-center">
+                    <!-- Button to go back -->
+                    <a href="/" class="btn btn-outline-primary btn-lg">
+                        Volver al inicio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
