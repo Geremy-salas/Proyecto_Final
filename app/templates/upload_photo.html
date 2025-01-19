@@ -119,8 +119,27 @@
                 <ul style="font-size: 1.2rem; line-height: 1.6;">
                   <li><strong>¿Es un intento de phishing?:</strong> {{ phishing_result }}</li>
                   <li><strong>Texto extraído de la imagen:</strong> {{ extracted_text }}</li>
+                  <li><strong>Objetos detectados:</strong>
+                    {% if objects_detected %}
+                    {{ objects_detected | join(', ') }}
+                    {% else %}
+                    Ningún objeto detectado.
+                    {% endif %}
+                  </li>
                   <li><strong>Detalles del análisis:</strong> Nuestro sistema ha evaluado la imagen y ha determinado los riesgos asociados.</li>
                 </ul>
+
+                <!-- Mostrar las entidades web detectadas -->
+                {% if web_entities %}
+                <h3>Entidades Web Detectadas</h3>
+                <ul>
+                  {% for entity in web_entities %}
+                  <li>{{ entity }}</li>
+                  {% endfor %}
+                </ul>
+                {% else %}
+                <p>No se detectaron entidades web.</p>
+                {% endif %}
               </div>
             </div>
             <p class="mt-3">Si deseas cargar otra imagen, haz clic
@@ -138,8 +157,6 @@
         {% endblock %}
       </div>
     </section>
-
-
   </div>
 
   <footer class="main-footer">
