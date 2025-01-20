@@ -6,3 +6,4 @@ google-cloud-logging==3.11.3
 google-cloud-vision==2.4.2
 requests==2.28.2
 beautifulsoup4==4.11.1
+google-cloud-texttospeech==3.0.0

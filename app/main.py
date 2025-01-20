@@ -1,12 +1,13 @@
 import logging
 import os
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_file
 import google.cloud.logging
 from google.cloud import firestore
 from google.cloud import storage
 from google.cloud import vision
 from google.cloud import vision_v1p3beta1 as vision
+from google.cloud import texttospeech
 
 # Configuración de logging
 client = google.cloud.logging.Client()
@@ -15,6 +16,7 @@ client.setup_logging()
 
 app = Flask(__name__)
 vision_client = vision.ImageAnnotatorClient()
+text_to_speech_client = texttospeech.TextToSpeechClient()
 
 @app.route('/')
 def root():
@@ -27,6 +29,7 @@ def upload():
     extracted_text = ""
     phishing_result = "No evaluado"
     web_entities = []
+    audio_file = None
 
     if request.method == 'POST':
         uploaded_file = request.files.get('picture')
@@ -40,13 +43,19 @@ def upload():
                     uploaded_file.read(),
                     content_type=uploaded_file.content_type
                 )
-                logging.info(blob.public_url)
+                logging.info(f"Imagen subida a {blob.public_url}")
+
+                # Descargar la imagen al servidor temporalmente
+                local_path = f"/tmp/{uploaded_file.filename}"
+                with open(local_path, "wb") as image_file:
+                    image_file.write(blob.download_as_bytes())
 
                 # Procesar la imagen
-                objects_detected = detect_objects(blob.public_url)
+                objects_detected = localize_objects(local_path)
                 extracted_text = extract_text(blob.public_url)
                 phishing_result = detect_phishing(extracted_text)
                 web_entities = detect_web_uri(blob.public_url)
+                audio_file = convert_text_to_audio(extracted_text)
                 successful_upload = True
 
             except Exception as e:
@@ -58,7 +67,8 @@ def upload():
         objects_detected=objects_detected,
         extracted_text=extracted_text,
         phishing_result=phishing_result,
-        web_entities=web_entities
+        web_entities=web_entities,
+        audio_file=audio_file
     )
 
 
@@ -146,6 +156,42 @@ def detect_phishing(extracted_text):
             return "Posible phishing detectado"
     return "No es phishing"
 
+def convert_text_to_audio(text):
+    """Convierte el texto extraído a un archivo de audio utilizando Google Text-to-Speech."""
+    if text.strip():
+        # Configuración para la conversión a voz
+        synthesis_input = texttospeech.SynthesisInput(text=text)
+        voice = texttospeech.VoiceSelectionParams(
+            language_code="es-ES",  # Puedes cambiar el idioma si es necesario
+            ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+        )
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.MP3
+        )
+
+        # Solicitar la conversión a voz
+        response = text_to_speech_client.synthesize_speech(
+            input=synthesis_input,
+            voice=voice,
+            audio_config=audio_config
+        )
+
+        # Guardar el archivo de audio
+        audio_path = "/tmp/extracted_text_audio.mp3"
+        with open(audio_path, "wb") as out:
+            out.write(response.audio_content)
+
+        return audio_path
+    return None
+
+@app.route('/download_audio')
+def download_audio():
+    """Ruta para descargar el archivo de audio generado."""
+    audio_file = "/tmp/extracted_text_audio.mp3"
+    if os.path.exists(audio_file):
+        return send_file(audio_file, as_attachment=True)
+    return "Archivo de audio no encontrado."
+
 def detect_web_uri(uri):
     """Detecta entidades web y páginas relacionadas con la imagen."""
     try:
@@ -194,23 +240,27 @@ def open(path, param):
     pass
 
 
-def localize_objects(path):
- 
+def localize_objects(image_path):
+    """Localiza objetos en una imagen desde un archivo local."""
+    try:
+        client = vision.ImageAnnotatorClient()
+        with open(image_path, "rb") as image_file:
+            content = image_file.read()
+        image = vision.Image(content=content)
+        objects = client.object_localization(image=image).localized_object_annotations
 
-    client = vision.ImageAnnotatorClient()
+        detected_objects = []
+        for obj in objects:
+            detected_objects.append({
+                "name": obj.name,
+                "confidence": obj.score,
+                "vertices": [{"x": v.x, "y": v.y} for v in obj.bounding_poly.normalized_vertices]
+            })
 
-    with open(path, "rb") as image_file:
-        content = image_file.read()
-    image = vision.Image(content=content)
-
-    objects = client.object_localization(image=image).localized_object_annotations
-
-    print(f"Number of objects found: {len(objects)}")
-    for object_ in objects:
-        print(f"\n{object_.name} (confidence: {object_.score})")
-        print("Normalized bounding polygon vertices: ")
-        for vertex in object_.bounding_poly.normalized_vertices:
-            print(f" - ({vertex.x}, {vertex.y})")
+        return detected_objects
+    except Exception as e:
+        logging.error(f"Error al localizar objetos: {e}")
+        return []
 
 
 def int(param):
