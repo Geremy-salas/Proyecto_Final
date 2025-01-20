@@ -43,15 +43,12 @@ def upload():
                     uploaded_file.read(),
                     content_type=uploaded_file.content_type
                 )
-                logging.info(f"Imagen subida a {blob.public_url}")
+                logging.info(blob.public_url)
 
-                # Descargar la imagen al servidor temporalmente
-                local_path = f"/tmp/{uploaded_file.filename}"
-                with open(local_path, "wb") as image_file:
-                    image_file.write(blob.download_as_bytes())
+
 
                 # Procesar la imagen
-                objects_detected = localize_objects(local_path)
+                objects_detected = detect_objects(blob.public_url)
                 extracted_text = extract_text(blob.public_url)
                 phishing_result = detect_phishing(extracted_text)
                 web_entities = detect_web_uri(blob.public_url)
@@ -87,20 +84,15 @@ def search():
 
     if query:
         db = firestore.Client()
+        doc = db.collection(u'tags').document(query.lower()).get().to_dict()
 
-        # Intentamos buscar el texto relacionado con el término de búsqueda
-        doc_ref = db.collection(u'texts').document(query.lower())  # Buscamos por el contenido
-
-        doc = doc_ref.get()
-        if doc.exists:
-            doc_dict = doc.to_dict()
-            # Si encontramos la URL de la imagen, la agregamos a los resultados
-            image_url = doc_dict.get('image_url')
-            if image_url:
-                results.append(image_url)
+        try:
+            for url in doc['photo_urls']:
+                results.append(url)
+        except TypeError as e:
+            pass
 
     return render_template('search.html', query=query, results=results)
-
 
 
 
@@ -247,27 +239,23 @@ def open(path, param):
     pass
 
 
-def localize_objects(image_path):
-    """Localiza objetos en una imagen desde un archivo local."""
-    try:
-        client = vision.ImageAnnotatorClient()
-        with open(image_path, "rb") as image_file:
-            content = image_file.read()
-        image = vision.Image(content=content)
-        objects = client.object_localization(image=image).localized_object_annotations
+def localize_objects(path):
 
-        detected_objects = []
-        for obj in objects:
-            detected_objects.append({
-                "name": obj.name,
-                "confidence": obj.score,
-                "vertices": [{"x": v.x, "y": v.y} for v in obj.bounding_poly.normalized_vertices]
-            })
 
-        return detected_objects
-    except Exception as e:
-        logging.error(f"Error al localizar objetos: {e}")
-        return []
+    client = vision.ImageAnnotatorClient()
+
+    with open(path, "rb") as image_file:
+        content = image_file.read()
+    image = vision.Image(content=content)
+
+    objects = client.object_localization(image=image).localized_object_annotations
+
+    print(f"Number of objects found: {len(objects)}")
+    for object_ in objects:
+        print(f"\n{object_.name} (confidence: {object_.score})")
+        print("Normalized bounding polygon vertices: ")
+        for vertex in object_.bounding_poly.normalized_vertices:
+            print(f" - ({vertex.x}, {vertex.y})")
 
 
 def int(param):
