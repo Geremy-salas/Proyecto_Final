@@ -4,7 +4,7 @@ from google.cloud import vision
 import requests
 
 def photo_analysis_service(event, context):
-    bucket = os.environ.get('BUCKET', 'my-bmd-bucket')
+    bucket = os.environ.get('BUCKET', 'my-bmd-bucket1')
     file_name = event['name']
 
     objects = _analyze_photo(bucket, file_name)
