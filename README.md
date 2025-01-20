@@ -1,4 +1,6 @@
-# proyecto_computacion
-Es una aplicación web avanzada que permite a los usuarios cargar imágenes y, mediante el uso de la Google Vision API, transformar el contenido visual en texto. Este texto extraído se analiza para identificar si está relacionado con intentos de phishing, mediante un sistema que detecta palabras clave comunes asociadas a este tipo de fraudes.
+# Proyecto_computacion
+Se desarrolló un sistema de aplicación web que utiliza la API de Google Vision para extraer el texto de las imágenes y detectar posibles intentos de falsificación o phishing. El sistema obtiene palabras clave del texto y las compara con ejemplos conocidos de fraudes, lo que permite identificar si se trata de un intento de phishing.
 
-Además de la conversión de imágenes a texto, la aplicación ofrece una funcionalidad de detección de entidades web (detect_web_uri), que permite identificar páginas web y entidades relacionadas con la imagen cargada. Todo esto se realiza a través de la integración con la Google Vision API, que proporciona potentes capacidades de visión computacional para extraer texto y analizar el contenido visual de las imágenes.
+Además, el sistema verifica la legitimidad de las imágenes y, si estas están disponibles en la web, muestra un listado de URLs de donde provienen, ayudando a identificar su origen.
+
+Gracias a las herramientas y capacidades de inteligencia artificial de la API de Google Vision, el proceso de extracción de texto de las imágenes es muy preciso y minimiza los errores. También, el uso de Google Cloud asegura que el sitio web sea robusto, evitando caídas o fallas en su funcionamiento, proporcionando así una experiencia confiable y segura para los usuarios.
