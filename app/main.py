@@ -87,15 +87,22 @@ def search():
 
     if query:
         db = firestore.Client()
-        doc = db.collection(u'tags').document(query.lower()).get().to_dict()
 
-        try:
-            for url in doc['photo_urls']:
-                results.append(url)
-        except TypeError as e:
-            pass
+        # Intentamos buscar el texto relacionado con el término de búsqueda
+        doc_ref = db.collection(u'texts').document(query.lower())  # Buscamos por el contenido
+
+        doc = doc_ref.get()
+        if doc.exists:
+            doc_dict = doc.to_dict()
+            # Si encontramos la URL de la imagen, la agregamos a los resultados
+            image_url = doc_dict.get('image_url')
+            if image_url:
+                results.append(image_url)
 
     return render_template('search.html', query=query, results=results)
+
+
+
 
 @app.route('/verify', methods=['POST', 'GET'])
 def verify():

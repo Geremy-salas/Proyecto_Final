@@ -87,38 +87,31 @@
           <div class="card-body">
             <p class="lead text-muted mb-4">Utiliza este formulario para buscar imágenes relacionadas con phishing. Ingresa términos clave para encontrar imágenes sospechosas y verificarlas.</p>
 
-            <!-- Search Form -->
-
-
-            {% extends "layout.html" %}
-
-            {% block content %}
-            <h2>Búsqueda</h2>
-
-            <form method="get" action="/search">
-              <label for="q">Escribe un término</label>
-              <input type="text" name="q">
-              <button type="submit">Cargar</button>
+            <form action="{{ url_for('search') }}" method="get">
+              <label for="search-query">¿Qué estás buscando?</label>
+              <input type="text" id="search-query" name="q" value="{{ query or '' }}" required>
+              <button type="submit">Buscar</button>
             </form>
 
             {% if query %}
+            <h2>Resultados para: "{{ query }}"</h2>
+
             {% if results %}
-            <h3>Resultados para {{query}}</h3>
-
-            {% for image_link in results %}
-            <img src="{{image_link}}" />
-            {% endfor %}
-
+            <ul>
+              {% for image_url in results %}
+              <li>
+                <img src="{{ image_url }}" alt="Imagen relacionada" style="max-width: 300px;">
+              </li>
+              {% endfor %}
+            </ul>
             {% else %}
-            <h3>No existieron resultados para {{query}}</h3>
+            <p>No se encontraron imágenes relacionadas con "{{ query }}".</p>
             {% endif %}
             {% endif %}
-            {% endblock %}
-
 
           </div>
         </div>
-      </div>
+
     </section>
 
   </div>
