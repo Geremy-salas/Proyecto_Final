@@ -1,13 +1,12 @@
 import logging
 import os
 
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request
 import google.cloud.logging
 from google.cloud import firestore
 from google.cloud import storage
 from google.cloud import vision
 from google.cloud import vision_v1p3beta1 as vision
-from google.cloud import texttospeech
 
 # Configuración de logging
 client = google.cloud.logging.Client()
@@ -16,7 +15,6 @@ client.setup_logging()
 
 app = Flask(__name__)
 vision_client = vision.ImageAnnotatorClient()
-text_to_speech_client = texttospeech.TextToSpeechClient()
 
 @app.route('/')
 def root():
@@ -29,7 +27,6 @@ def upload():
     extracted_text = ""
     phishing_result = "No evaluado"
     web_entities = []
-    audio_file = None
 
     if request.method == 'POST':
         uploaded_file = request.files.get('picture')
@@ -37,7 +34,7 @@ def upload():
             try:
                 # Subir imagen al bucket de Google Cloud Storage
                 gcs = storage.Client()
-                bucket = gcs.get_bucket(os.environ.get('BUCKET', 'proyecto-bucket-2'))
+                bucket = gcs.get_bucket(os.environ.get('BUCKET', 'my-bmd-bucket1'))
                 blob = bucket.blob(uploaded_file.filename)
                 blob.upload_from_string(
                     uploaded_file.read(),
@@ -45,14 +42,11 @@ def upload():
                 )
                 logging.info(blob.public_url)
 
-
-
                 # Procesar la imagen
                 objects_detected = detect_objects(blob.public_url)
                 extracted_text = extract_text(blob.public_url)
                 phishing_result = detect_phishing(extracted_text)
                 web_entities = detect_web_uri(blob.public_url)
-                audio_file = convert_text_to_audio(extracted_text)
                 successful_upload = True
 
             except Exception as e:
@@ -64,8 +58,7 @@ def upload():
         objects_detected=objects_detected,
         extracted_text=extracted_text,
         phishing_result=phishing_result,
-        web_entities=web_entities,
-        audio_file=audio_file
+        web_entities=web_entities
     )
 
 
@@ -93,8 +86,6 @@ def search():
             pass
 
     return render_template('search.html', query=query, results=results)
-
-
 
 @app.route('/verify', methods=['POST', 'GET'])
 def verify():
@@ -154,42 +145,6 @@ def detect_phishing(extracted_text):
         if word.lower() in extracted_text.lower():
             return "Posible phishing detectado"
     return "No es phishing"
-
-def convert_text_to_audio(text):
-    """Convierte el texto extraído a un archivo de audio utilizando Google Text-to-Speech."""
-    if text.strip():
-        # Configuración para la conversión a voz
-        synthesis_input = texttospeech.SynthesisInput(text=text)
-        voice = texttospeech.VoiceSelectionParams(
-            language_code="es-ES",  # Puedes cambiar el idioma si es necesario
-            ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
-        )
-        audio_config = texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.MP3
-        )
-
-        # Solicitar la conversión a voz
-        response = text_to_speech_client.synthesize_speech(
-            input=synthesis_input,
-            voice=voice,
-            audio_config=audio_config
-        )
-
-        # Guardar el archivo de audio
-        audio_path = "/tmp/extracted_text_audio.mp3"
-        with open(audio_path, "wb") as out:
-            out.write(response.audio_content)
-
-        return audio_path
-    return None
-
-@app.route('/download_audio')
-def download_audio():
-    """Ruta para descargar el archivo de audio generado."""
-    audio_file = "/tmp/extracted_text_audio.mp3"
-    if os.path.exists(audio_file):
-        return send_file(audio_file, as_attachment=True)
-    return "Archivo de audio no encontrado."
 
 def detect_web_uri(uri):
     """Detecta entidades web y páginas relacionadas con la imagen."""
