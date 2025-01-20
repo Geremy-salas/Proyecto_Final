@@ -66,19 +66,24 @@ class Exception:
     pass
 
 
+class TypeError:
+    pass
+
+
 @app.route('/search')
 def search():
     query = request.args.get('q')
     results = []
 
     if query:
+        db = firestore.Client()
+        doc = db.collection(u'tags').document(query.lower()).get().to_dict()
+
         try:
-            db = firestore.Client()
-            doc = db.collection(u'tags').document(query.lower()).get().to_dict()
-            if doc and 'photo_urls' in doc:
-                results = doc['photo_urls']
-        except Exception as e:
-            logging.error(f"Error al buscar en Firestore: {e}")
+            for url in doc['photo_urls']:
+                results.append(url)
+        except TypeError as e:
+            pass
 
     return render_template('search.html', query=query, results=results)
 
