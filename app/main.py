@@ -36,7 +36,7 @@ def upload():
             try:
                 # Subir imagen al bucket de Google Cloud Storage
                 gcs = storage.Client()
-                bucket = gcs.get_bucket(os.environ.get('BUCKET', 'my-bmd-bucket1'))
+                bucket = gcs.get_bucket(os.environ.get('BUCKET', 'proyecto-bucket-2'))
                 blob = bucket.blob(uploaded_file.filename)
                 blob.upload_from_string(
                     uploaded_file.read(),
