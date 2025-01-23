@@ -1,5 +1,6 @@
 import logging
 import os
+import base64
 
 from flask import Flask, render_template, request
 import google.cloud.logging
@@ -28,7 +29,7 @@ def upload():
     extracted_text = ""
     phishing_result = "No evaluado"
     web_entities = []
-    audio_path = None
+    audio_base64 = ""
 
     if request.method == 'POST':
         uploaded_file = request.files.get('picture')
@@ -51,8 +52,7 @@ def upload():
                 web_entities = detect_web_uri(blob.public_url)
                 successful_upload = True
 
-                # Convertir el texto extraído en audio
-                audio_path = text_to_audio(extracted_text, output_path="static/audio/output.mp3")
+                audio_base64 = text_to_audio(extracted_text)
 
             except Exception as e:
                 logging.error(f"Error en la carga o análisis de la imagen: {e}")
@@ -64,7 +64,7 @@ def upload():
         extracted_text=extracted_text,
         phishing_result=phishing_result,
         web_entities=web_entities,
-        audio_path=audio_path
+        audio_base64=audio_base64
     )
 
 class Exception:
@@ -137,40 +137,37 @@ def extract_text(image_uri):
         logging.error(f"Error al extraer texto: {e}")
         return ""
 
-def text_to_audio(text, output_path="output.mp3"):
+def text_to_audio(text):
+    """Convert text to audio using Google Text-to-Speech."""
     try:
-        # Inicializar el cliente de Text-to-Speech
+        # Initialize Text-to-Speech client
         client = texttospeech.TextToSpeechClient()
 
-        # Configurar la solicitud de síntesis
+        # Configure synthesis input
         synthesis_input = texttospeech.SynthesisInput(text=text)
 
-        # Configuración de la voz
+        # Voice configuration
         voice = texttospeech.VoiceSelectionParams(
-            language_code="es-ES",  # Español (España)
+            language_code="es-ES",  # Spanish (Spain)
             ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
         )
 
-        # Configuración del audio de salida
+        # Audio output configuration
         audio_config = texttospeech.AudioConfig(
             audio_encoding=texttospeech.AudioEncoding.MP3
         )
 
-        # Realizar la solicitud de síntesis
+        # Perform synthesis
         response = client.synthesize_speech(
             input=synthesis_input, voice=voice, audio_config=audio_config
         )
 
-        # Guardar el archivo de audio
-        with open(output_path, "wb") as audio_file:
-            audio_file.write(response.audio_content)
-
-        logging.info(f"Archivo de audio generado: {output_path}")
-        return output_path
+        # Convert audio to base64
+        return base64.b64encode(response.audio_content).decode('utf-8')
 
     except Exception as e:
-        logging.error(f"Error al generar el audio: {e}")
-        return None
+        logging.error(f"Error generating audio: {e}")
+        return ""
 
 def detect_phishing(extracted_text):
     """Determina si el texto podría ser phishing."""

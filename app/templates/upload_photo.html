@@ -125,12 +125,21 @@
                 <li><strong>Detalles del análisis:</strong> Nuestro sistema ha evaluado la imagen y ha determinado los riesgos asociados.</li>
                 <li><strong>¿Es un intento de phishing?:</strong> {{ phishing_result }}</li>
                 <li><strong>Texto extraído de la imagen:</strong> {{ extracted_text }}</li>
-                {% if audio_file %}
-                <li><strong>Escuchar el texto extraído:</strong></li>
-                <audio controls>
-                  <source src="{{ audio_file }}" type="audio/mpeg">
-                  Tu navegador no soporta el elemento de audio.
-                </audio>
+                {% if audio_base64 %}
+                <li>
+                  <strong>Escuchar el texto extraído:</strong>
+                  <div class="audio-container mt-2">
+                    <audio id="extracted-text-audio" controls class="w-100">
+                      <source src="data:audio/mp3;base64,{{ audio_base64 }}" type="audio/mp3">
+                      Tu navegador no soporta el elemento de audio.
+                    </audio>
+                    <div class="text-center mt-2">
+                      <button onclick="downloadAudio()" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-download"></i> Descargar Audio
+                      </button>
+                    </div>
+                  </div>
+                </li>
                 {% endif %}
               </ul>
 
@@ -171,6 +180,21 @@
   </div>
 </footer>
 </div>
+
+{% if audio_base64 %}
+<script>
+  function downloadAudio() {
+      const base64Audio = "{{ audio_base64 }}";
+      const link = document.createElement('a');
+      link.href = "data:audio/mp3;base64," + base64Audio;
+      link.download = "texto_extraido.mp3";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  }
+</script>
+{% endif %}
+
 
 <!-- Scripts -->
 <script src="../static/plugins/jquery/jquery.min.js"></script>
