@@ -1,4 +1,5 @@
-#Proyecto_Computacion
+# Proyecto_Computacion
+
 Se desarrolló un aplicativo web que utiliza la *API de Google Vision* para extraer texto de imágenes y detectar posibles intentos de falsificación o phishing. El proceso comienza cuando el usuario sube una imagen, que es almacenada en un bucket. A partir de esta imagen, se extrae todo el texto, y mediante una función específica, se analiza si contiene indicios de phishing. Además, el sistema genera palabras clave asociadas al contenido, proporcionando metadata útil para su análisis.
 
 Adicionalmente, se integró la *API de Cloud Text-to-Speech* para convertir el texto extraído en audio, ampliando las funcionalidades del sistema y permitiendo ofrecer la información en diferentes formatos según los requerimientos.
